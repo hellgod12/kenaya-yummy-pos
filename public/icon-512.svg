@@ -1,0 +1,41 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#FFF8F0" rx="102.4"/>
+  
+  <!-- Decorative circle -->
+  <circle cx="256" cy="256" r="213" fill="#FFE4D6" opacity="0.5"/>
+  
+  <!-- Bakery icon - Cake -->
+  <g transform="translate(128, 128)">
+    <!-- Cake base -->
+    <rect x="0" y="128" width="256" height="128" fill="#F97316" rx="21.3"/>
+    <rect x="11" y="139" width="234" height="106" fill="#FB923C" rx="16"/>
+    
+    <!-- Cake layers -->
+    <rect x="21" y="85" width="214" height="64" fill="#EF4444" rx="10.7"/>
+    <rect x="32" y="96" width="192" height="53" fill="#F87171" rx="8"/>
+    
+    <!-- Frosting -->
+    <path d="M21 85 Q85 53 149 85 Q213 53 256 85 L256 85 Q213 64 149 85 Q85 64 21 85 Z" fill="#FFF8F0"/>
+    
+    <!-- Candles -->
+    <rect x="64" y="21" width="21" height="64" fill="#FBBF24" rx="2.7"/>
+    <rect x="119" y="11" width="21" height="75" fill="#F59E0B" rx="2.7"/>
+    <rect x="171" y="21" width="21" height="64" fill="#FBBF24" rx="2.7"/>
+    
+    <!-- Flames -->
+    <ellipse cx="74.5" cy="11" rx="16" ry="21" fill="#F97316"/>
+    <ellipse cx="129.5" cy="0" rx="16" ry="21" fill="#EF4444"/>
+    <ellipse cx="181.5" cy="11" rx="16" ry="21" fill="#F97316"/>
+    
+    <!-- Decorative elements - sprinkles -->
+    <circle cx="43" cy="107" r="5" fill="#FBBF24"/>
+    <circle cx="213" cy="107" r="5" fill="#FBBF24"/>
+    <circle cx="85" cy="117" r="4" fill="#F59E0B"/>
+    <circle cx="171" cy="117" r="4" fill="#F59E0B"/>
+  </g>
+  
+  <!-- Text - Kenaya Yummy -->
+  <text x="256" y="440" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#F97316">Kenaya</text>
+  <text x="256" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#EF4444">Yummy</text>
+</svg>
