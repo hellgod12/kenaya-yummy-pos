@@ -60,7 +60,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@kenayayummy.com"
+                placeholder="your@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -101,11 +101,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-          <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-xs text-gray-600 text-center">
-              <span className="font-semibold">Demo:</span> admin@kenayayummy.com / demo123
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
