@@ -6,9 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { 
   LayoutDashboard, 
   ShoppingCart, 
-  BarChart3, 
   Receipt,
-  LogOut
+  Grid3x3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -16,12 +15,12 @@ const mobileNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'kasir'] },
   { name: 'Kasir', href: '/pos', icon: ShoppingCart, roles: ['admin', 'kasir'] },
   { name: 'Transaksi', href: '/transactions', icon: Receipt, roles: ['admin', 'kasir'] },
-  { name: 'Laporan', href: '/reports', icon: BarChart3, roles: ['admin'] },
+  { name: 'Lainnya', href: '/more', icon: Grid3x3, roles: ['admin', 'kasir'] },
 ]
 
 export function MobileNavigation() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-bottom md:hidden">
@@ -29,7 +28,7 @@ export function MobileNavigation() {
         {mobileNavigation
           .filter((item) => item.roles.includes(user?.role || 'kasir'))
           .map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href || (item.href === '/more' && pathname.startsWith('/more'))
             return (
               <Link
                 key={item.name}
@@ -46,13 +45,6 @@ export function MobileNavigation() {
               </Link>
             )
           })}
-        <button
-          onClick={logout}
-          className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg text-gray-500 hover:text-red-600 transition-all duration-200 min-w-[60px]"
-        >
-          <LogOut className="w-6 h-6" />
-          <span className="text-xs font-medium">Keluar</span>
-        </button>
       </div>
     </div>
   )
