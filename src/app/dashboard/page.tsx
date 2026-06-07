@@ -51,24 +51,41 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      // Use UTC date to match Supabase's timezone
+      const now = new Date()
+      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      const tomorrowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+      
+      const todayStart = todayUTC.toISOString()
+      const todayEnd = tomorrowUTC.toISOString()
+
+      console.log('DASHBOARD DATE RANGE:', { todayStart, todayEnd })
 
       // Get today's sales
       const { data: salesData } = await supabase
         .from('sales')
         .select('total_amount, profit')
-        .gte('created_at', `${today}T00:00:00`)
-        .lt('created_at', `${today}T23:59:59`)
+        .gte('created_at', todayStart)
+        .lt('created_at', todayEnd)
 
       const todayRevenue = salesData?.reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
       const todayProfit = salesData?.reduce((sum, sale) => sum + Number(sale.profit), 0) || 0
 
-      // Get today's sales count
-      const { count: salesCount } = await supabase
-        .from('sales')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', `${today}T00:00:00`)
-        .lt('created_at', `${today}T23:59:59`)
+      console.log('TODAY SALES DATA:', salesData)
+      console.log('TODAY REVENUE:', todayRevenue)
+      console.log('TODAY PROFIT:', todayProfit)
+
+      // Get today's total quantity sold (sum of all sale_items quantities)
+      const { data: saleItemsData } = await supabase
+        .from('sale_items')
+        .select('quantity')
+        .gte('created_at', todayStart)
+        .lt('created_at', todayEnd)
+
+      const todayQuantitySold = saleItemsData?.reduce((sum, item) => sum + Number(item.quantity), 0) || 0
+
+      console.log('TODAY SALE ITEMS DATA:', saleItemsData)
+      console.log('TODAY QUANTITY SOLD:', todayQuantitySold)
 
       // Get low stock products (stock < 10)
       const { count: lowStockCount } = await supabase
@@ -76,17 +93,21 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .lt('stock', 10)
 
-      // Get best sellers (top 5 by quantity sold)
+      // Get best sellers (top 5 by quantity sold TODAY)
       const { data: bestSellersData } = await supabase
         .from('sale_items')
         .select('product_id, quantity, products!inner(name)')
+        .gte('created_at', todayStart)
+        .lt('created_at', todayEnd)
         .order('quantity', { ascending: false })
         .limit(5)
+
+      console.log('TODAY BEST SELLERS:', bestSellersData)
 
       setStats({
         todayRevenue,
         todayProfit,
-        todaySales: salesCount || 0,
+        todaySales: todayQuantitySold, // Changed from sales count to total quantity
         lowStock: lowStockCount || 0,
         bestSellers: bestSellersData || []
       })
