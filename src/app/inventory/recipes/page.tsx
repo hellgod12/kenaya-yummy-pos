@@ -221,12 +221,26 @@ export default function RecipesPage() {
       if (recipes) {
         totalHPP = recipes.reduce((sum, recipe) => {
           const materials = recipe.raw_materials as any
-          console.log('recipe:', recipe, 'materials:', materials)
-          if (materials && materials.length > 0) {
-            const cost = recipe.quantity_used * materials[0].cost_per_unit
-            console.log('quantity_used:', recipe.quantity_used, 'cost_per_unit:', materials[0].cost_per_unit, 'cost:', cost)
+          console.log('recipe:', recipe, 'materials:', materials, 'type:', typeof materials, 'isArray:', Array.isArray(materials))
+          
+          let costPerUnit = 0
+          
+          // Handle both array and object cases
+          if (Array.isArray(materials) && materials.length > 0) {
+            costPerUnit = materials[0].cost_per_unit
+            console.log('Array case - cost_per_unit:', costPerUnit)
+          } else if (materials && !Array.isArray(materials) && materials.cost_per_unit) {
+            costPerUnit = materials.cost_per_unit
+            console.log('Object case - cost_per_unit:', costPerUnit)
+          }
+          
+          if (costPerUnit > 0) {
+            const cost = recipe.quantity_used * costPerUnit
+            console.log('quantity_used:', recipe.quantity_used, 'cost_per_unit:', costPerUnit, 'cost:', cost)
             return sum + cost
           }
+          
+          console.log('No valid cost_per_unit found, skipping this recipe')
           return sum
         }, 0)
       }
