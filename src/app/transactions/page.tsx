@@ -107,7 +107,7 @@ export default function TransactionsPage() {
 
       let query = supabase
         .from('sales')
-        .select('*, profiles(name, role)')
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (dateFilter !== 'all' && startDate && endDate) {
@@ -124,7 +124,32 @@ export default function TransactionsPage() {
       console.log('SALES ERROR:', error)
 
       if (error) throw error
-      setSales(data || [])
+
+      // Fetch profiles separately to avoid join issues
+      const salesWithProfiles = await Promise.all(
+        (data || []).map(async (sale) => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('name, role')
+              .eq('id', sale.created_by)
+              .single()
+            
+            return {
+              ...sale,
+              profiles: profile || undefined
+            }
+          } catch (profileError) {
+            console.error('Error fetching profile for sale:', sale.id, profileError)
+            return {
+              ...sale,
+              profiles: undefined
+            }
+          }
+        })
+      )
+
+      setSales(salesWithProfiles)
     } catch (error) {
       console.error('Error fetching sales:', error)
     } finally {
