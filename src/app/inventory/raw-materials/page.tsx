@@ -52,21 +52,28 @@ export default function RawMaterialsPage() {
 
   const fetchRawMaterials = async () => {
     try {
+      console.log('FETCHING RAW MATERIALS...')
       const { data, error } = await supabase
         .from('raw_materials')
         .select('*')
         .order('name')
       
+      console.log('FETCH RESULT:', { data, error })
+      
       if (error) throw error
       setRawMaterials(data || [])
     } catch (error) {
-      console.error('Error fetching raw materials:', error)
+      console.error('ERROR FETCHING RAW MATERIALS:', error)
+      console.error('FETCH ERROR DETAILS:', JSON.stringify(error, null, 2))
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      console.log('FORM DATA:', formData)
+      console.log('USER:', user)
+      
       const materialData = {
         name: formData.name,
         unit: formData.unit,
@@ -74,18 +81,26 @@ export default function RawMaterialsPage() {
         stock: parseFloat(formData.stock)
       }
 
+      console.log('MATERIAL DATA TO INSERT:', materialData)
+
       if (editingMaterial) {
-        const { error } = await supabase
+        console.log('UPDATING MATERIAL ID:', editingMaterial.id)
+        const { error, data } = await supabase
           .from('raw_materials')
           .update(materialData)
           .eq('id', editingMaterial.id)
+          .select()
         
+        console.log('UPDATE RESULT:', { error, data })
         if (error) throw error
       } else {
-        const { error } = await supabase
+        console.log('INSERTING NEW MATERIAL')
+        const { error, data } = await supabase
           .from('raw_materials')
           .insert(materialData)
+          .select()
         
+        console.log('INSERT RESULT:', { error, data })
         if (error) throw error
       }
 
@@ -93,8 +108,9 @@ export default function RawMaterialsPage() {
       resetForm()
       fetchRawMaterials()
     } catch (error) {
-      console.error('Error saving raw material:', error)
-      alert('Terjadi kesalahan saat menyimpan bahan baku')
+      console.error('RAW MATERIAL INSERT ERROR:', error)
+      console.error('ERROR DETAILS:', JSON.stringify(error, null, 2))
+      alert('Terjadi kesalahan saat menyimpan bahan baku. Cek console untuk detail.')
     }
   }
 
