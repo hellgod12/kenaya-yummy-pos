@@ -99,13 +99,32 @@ export default function DashboardPage() {
         .lt('stock', 10)
 
       // Get best sellers (top 5 by quantity sold TODAY)
-      const { data: bestSellersData } = await supabase
+      const { data: bestSellersRawData } = await supabase
         .from('sale_items')
         .select('product_id, quantity, products!inner(name)')
         .gte('created_at', todayStart)
         .lt('created_at', todayEnd)
-        .order('quantity', { ascending: false })
-        .limit(5)
+
+      // Aggregate by product_id and sum quantities
+      const productAggregates = new Map<string, { quantity: number, name: string }>()
+      bestSellersRawData?.forEach(item => {
+        const productId = item.product_id
+        const current = productAggregates.get(productId) || { quantity: 0, name: (item as any).products?.name || 'Unknown' }
+        productAggregates.set(productId, {
+          quantity: current.quantity + Number(item.quantity),
+          name: current.name
+        })
+      })
+
+      // Convert to array, sort by quantity descending, and take top 5
+      const bestSellersData = Array.from(productAggregates.entries())
+        .map(([product_id, data]) => ({
+          product_id,
+          quantity: data.quantity,
+          products: { name: data.name }
+        }))
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5)
 
       console.log('TODAY BEST SELLERS:', bestSellersData)
 
