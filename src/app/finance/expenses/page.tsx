@@ -23,6 +23,13 @@ interface Expense {
   created_at: string
 }
 
+interface FormData {
+  expense_date: string
+  category: string
+  description: string
+  amount: string
+}
+
 const categories = [
   'Electricity',
   'Water',
@@ -42,7 +49,7 @@ export default function ExpensesPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     expense_date: new Date().toISOString().split('T')[0],
     category: 'Other',
     description: '',
@@ -197,7 +204,7 @@ export default function ExpensesPage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-700">Kategori</label>
-                      <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                      <Select value={formData.category || 'Other'} onValueChange={(value) => setFormData({ ...formData, category: value || 'Other' })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
