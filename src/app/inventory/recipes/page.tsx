@@ -142,6 +142,10 @@ export default function RecipesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('SAVE RECIPE START')
+    console.log('selectedProductId:', selectedProductId)
+    console.log('ingredients:', ingredients)
+    
     if (!selectedProductId) {
       alert('Pilih produk terlebih dahulu')
       return
@@ -150,16 +154,20 @@ export default function RecipesPage() {
     try {
       // Validate ingredients
       const validIngredients = ingredients.filter(ing => ing.raw_material_id && ing.quantity_used)
+      console.log('validIngredients:', validIngredients)
+      
       if (validIngredients.length === 0) {
         alert('Tambahkan minimal satu bahan baku')
         return
       }
 
       // Delete existing recipes for this product
-      await supabase
+      console.log('Deleting existing recipes for product:', selectedProductId)
+      const deleteResult = await supabase
         .from('product_recipes')
         .delete()
         .eq('product_id', selectedProductId)
+      console.log('Delete result:', deleteResult)
 
       // Insert all new recipes
       const recipesToInsert = validIngredients.map(ing => ({
@@ -167,32 +175,44 @@ export default function RecipesPage() {
         raw_material_id: ing.raw_material_id,
         quantity_used: parseFloat(ing.quantity_used)
       }))
+      
+      console.log('recipesToInsert:', recipesToInsert)
 
       const { error } = await supabase
         .from('product_recipes')
         .insert(recipesToInsert)
 
+      console.log('Insert error:', error)
       if (error) throw error
 
       // Update product HPP
+      console.log('Calling updateProductHPP for product:', selectedProductId)
       await updateProductHPP(selectedProductId)
 
       setIsDialogOpen(false)
       resetForm()
       fetchProductsWithRecipes()
+      console.log('SAVE RECIPE SUCCESS')
     } catch (error) {
       console.error('Error saving recipe:', error)
+      console.error('ERROR DETAILS:', JSON.stringify(error, null, 2))
       alert('Terjadi kesalahan saat menyimpan resep')
     }
   }
 
   const updateProductHPP = async (productId: string) => {
     try {
+      console.log('UPDATE PRODUCT HPP START')
+      console.log('productId:', productId)
+      
       // Calculate HPP directly from recipes
       const { data: recipes, error: recipesError } = await supabase
         .from('product_recipes')
         .select('quantity_used, raw_materials(cost_per_unit)')
         .eq('product_id', productId)
+      
+      console.log('recipes data:', recipes)
+      console.log('recipes error:', recipesError)
       
       if (recipesError) throw recipesError
 
@@ -201,22 +221,36 @@ export default function RecipesPage() {
       if (recipes) {
         totalHPP = recipes.reduce((sum, recipe) => {
           const materials = recipe.raw_materials as any
+          console.log('recipe:', recipe, 'materials:', materials)
           if (materials && materials.length > 0) {
-            return sum + (recipe.quantity_used * materials[0].cost_per_unit)
+            const cost = recipe.quantity_used * materials[0].cost_per_unit
+            console.log('quantity_used:', recipe.quantity_used, 'cost_per_unit:', materials[0].cost_per_unit, 'cost:', cost)
+            return sum + cost
           }
           return sum
         }, 0)
       }
+      
+      console.log('totalHPP calculated:', totalHPP)
 
       // Update product HPP
-      const { error: updateError } = await supabase
+      const updateResult = await supabase
         .from('products')
         .update({ hpp: totalHPP })
         .eq('id', productId)
+        .select()
 
-      if (updateError) throw updateError
+      console.log('updateResult:', updateResult)
+
+      if (updateResult.error) {
+        console.error('UPDATE ERROR:', updateResult.error)
+        throw updateResult.error
+      }
+      
+      console.log('UPDATE PRODUCT HPP SUCCESS')
     } catch (error) {
       console.error('Error updating product HPP:', error)
+      console.error('ERROR DETAILS:', JSON.stringify(error, null, 2))
     }
   }
 
