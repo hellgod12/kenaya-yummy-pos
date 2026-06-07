@@ -13,13 +13,15 @@ import {
   Store,
   Wallet,
   Wheat,
-  BookOpen
+  BookOpen,
+  Receipt
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'kasir'] },
   { name: 'Kasir (POS)', href: '/pos', icon: ShoppingCart, roles: ['admin', 'kasir'] },
+  { name: 'Riwayat Transaksi', href: '/transactions', icon: Receipt, roles: ['admin', 'kasir'] },
   { name: 'Produk', href: '/inventory/products', icon: Package, roles: ['admin'] },
   { name: 'Bahan Baku', href: '/inventory/raw-materials', icon: Wheat, roles: ['admin'] },
   { name: 'Resep Produk', href: '/inventory/recipes', icon: BookOpen, roles: ['admin'] },

@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
+import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, startOfYear, endOfYear } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { BarChart3, Download, FileText, Table } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -26,12 +27,14 @@ interface ReportData {
   totalTransferSales: number
   sales: any[]
   topProducts: any[]
+  mostProfitableProducts: any[]
+  notSellingProducts: any[]
 }
 
 export default function ReportsPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [reportType, setReportType] = useState<'daily' | 'monthly'>('daily')
+  const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily')
   const [reportData, setReportData] = useState<ReportData>({
     totalRevenue: 0,
     totalCost: 0,
@@ -40,7 +43,9 @@ export default function ReportsPage() {
     totalCashSales: 0,
     totalTransferSales: 0,
     sales: [],
-    topProducts: []
+    topProducts: [],
+    mostProfitableProducts: [],
+    notSellingProducts: []
   })
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 
@@ -63,10 +68,18 @@ export default function ReportsPage() {
       if (reportType === 'daily') {
         startDate = `${selectedDate}T00:00:00`
         endDate = `${selectedDate}T23:59:59`
-      } else {
+      } else if (reportType === 'weekly') {
+        const date = new Date(selectedDate)
+        startDate = format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-MM-dd'T00:00:00'")
+        endDate = format(endOfWeek(date, { weekStartsOn: 1 }), "yyyy-MM-dd'T23:59:59'")
+      } else if (reportType === 'monthly') {
         const date = new Date(selectedDate)
         startDate = format(startOfMonth(date), "yyyy-MM-dd'T00:00:00'")
         endDate = format(endOfMonth(date), "yyyy-MM-dd'T23:59:59'")
+      } else if (reportType === 'yearly') {
+        const date = new Date(selectedDate)
+        startDate = format(startOfYear(date), "yyyy-MM-dd'T00:00:00'")
+        endDate = format(endOfYear(date), "yyyy-MM-dd'T23:59:59'")
       }
 
       // Get sales
@@ -94,6 +107,36 @@ export default function ReportsPage() {
         .order('quantity', { ascending: false })
         .limit(10)
 
+      // Get most profitable products
+      const { data: profitableProductsData } = await supabase
+        .from('sale_items')
+        .select('product_id, quantity, price, cost, products!inner(name)')
+        .gte('created_at', startDate)
+        .lte('created_at', endDate)
+
+      const productProfitMap = new Map()
+      profitableProductsData?.forEach((item: any) => {
+        const profit = (item.price - item.cost) * item.quantity
+        const current = productProfitMap.get(item.product_id) || { profit: 0, name: item.products.name }
+        productProfitMap.set(item.product_id, {
+          profit: current.profit + profit,
+          name: current.name
+        })
+      })
+
+      const mostProfitableProducts = Array.from(productProfitMap.entries())
+        .map(([product_id, data]) => ({ product_id, ...data }))
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 10)
+
+      // Get not selling products (products with no sales in the period)
+      const { data: allProducts } = await supabase
+        .from('products')
+        .select('id, name')
+
+      const soldProductIds = new Set(topProductsData?.map((item: any) => item.product_id) || [])
+      const notSellingProducts = allProducts?.filter((p: any) => !soldProductIds.has(p.id)).slice(0, 10) || []
+
       setReportData({
         totalRevenue,
         totalCost,
@@ -102,7 +145,9 @@ export default function ReportsPage() {
         totalCashSales,
         totalTransferSales,
         sales: salesData || [],
-        topProducts: topProductsData || []
+        topProducts: topProductsData || [],
+        mostProfitableProducts,
+        notSellingProducts
       })
     } catch (error) {
       console.error('Error fetching report data:', error)
@@ -252,16 +297,19 @@ export default function ReportsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="daily">Harian</SelectItem>
+                        <SelectItem value="weekly">Mingguan</SelectItem>
                         <SelectItem value="monthly">Bulanan</SelectItem>
+                        <SelectItem value="yearly">Tahunan</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-700 mb-2 block">Tanggal</label>
                     <Input
-                      type={reportType === 'daily' ? 'date' : 'month'}
+                      type={reportType === 'daily' ? 'date' : reportType === 'yearly' ? 'number' : 'month'}
                       value={selectedDate}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedDate(e.target.value)}
+                      placeholder={reportType === 'yearly' ? 'YYYY' : ''}
                       className="h-10"
                     />
                   </div>
@@ -379,6 +427,74 @@ export default function ReportsPage() {
                         <span className="font-semibold text-orange-600">
                           {item.quantity} terjual
                         </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Most Profitable Products */}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Produk Paling Menguntungkan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reportData.mostProfitableProducts.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Belum ada data penjualan
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reportData.mostProfitableProducts.map((item: any, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-white rounded-lg border border-green-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <span className="font-medium text-gray-800">
+                            {item.name || 'Unknown'}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-green-600">
+                          Rp {item.profit.toLocaleString('id-ID')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Not Selling Products */}
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Produk Tidak Laku</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reportData.notSellingProducts.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    Semua produk terjual
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {reportData.notSellingProducts.map((item: any, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gradient-to-r from-red-50 to-white rounded-lg border border-red-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <span className="font-medium text-gray-800">
+                            {item.name || 'Unknown'}
+                          </span>
+                        </div>
+                        <Badge variant="destructive">0 terjual</Badge>
                       </div>
                     ))}
                   </div>
