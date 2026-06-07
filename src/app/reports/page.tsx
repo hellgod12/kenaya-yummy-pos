@@ -22,6 +22,8 @@ interface ReportData {
   totalCost: number
   totalProfit: number
   totalSales: number
+  totalCashSales: number
+  totalTransferSales: number
   sales: any[]
   topProducts: any[]
 }
@@ -35,6 +37,8 @@ export default function ReportsPage() {
     totalCost: 0,
     totalProfit: 0,
     totalSales: 0,
+    totalCashSales: 0,
+    totalTransferSales: 0,
     sales: [],
     topProducts: []
   })
@@ -77,6 +81,10 @@ export default function ReportsPage() {
       const totalCost = salesData?.reduce((sum, sale) => sum + Number(sale.total_cost), 0) || 0
       const totalProfit = salesData?.reduce((sum, sale) => sum + Number(sale.profit), 0) || 0
 
+      // Calculate payment method totals
+      const totalCashSales = salesData?.filter(sale => sale.payment_method === 'cash').reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+      const totalTransferSales = salesData?.filter(sale => sale.payment_method === 'transfer').reduce((sum, sale) => sum + Number(sale.total_amount), 0) || 0
+
       // Get top products
       const { data: topProductsData } = await supabase
         .from('sale_items')
@@ -91,6 +99,8 @@ export default function ReportsPage() {
         totalCost,
         totalProfit,
         totalSales: salesData?.length || 0,
+        totalCashSales,
+        totalTransferSales,
         sales: salesData || [],
         topProducts: topProductsData || []
       })
@@ -118,7 +128,9 @@ export default function ReportsPage() {
     doc.text(`Total Omzet: Rp ${reportData.totalRevenue.toLocaleString('id-ID')}`, 14, 62)
     doc.text(`Total Modal: Rp ${reportData.totalCost.toLocaleString('id-ID')}`, 14, 70)
     doc.text(`Total Laba: Rp ${reportData.totalProfit.toLocaleString('id-ID')}`, 14, 78)
-    doc.text(`Jumlah Transaksi: ${reportData.totalSales}`, 14, 86)
+    doc.text(`Penjualan Tunai: Rp ${reportData.totalCashSales.toLocaleString('id-ID')}`, 14, 86)
+    doc.text(`Penjualan Transfer: Rp ${reportData.totalTransferSales.toLocaleString('id-ID')}`, 14, 94)
+    doc.text(`Jumlah Transaksi: ${reportData.totalSales}`, 14, 102)
 
     // Sales table
     if (reportData.sales.length > 0) {
@@ -174,6 +186,8 @@ export default function ReportsPage() {
       ['Total Omzet', reportData.totalRevenue],
       ['Total Modal', reportData.totalCost],
       ['Total Laba', reportData.totalProfit],
+      ['Penjualan Tunai', reportData.totalCashSales],
+      ['Penjualan Transfer', reportData.totalTransferSales],
       ['Jumlah Transaksi', reportData.totalSales]
     ]
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
@@ -256,7 +270,7 @@ export default function ReportsPage() {
             </Card>
 
             {/* Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <Card className="shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium text-gray-600">Total Omzet</CardTitle>
@@ -279,10 +293,30 @@ export default function ReportsPage() {
               </Card>
               <Card className="shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-sm font-medium text-gray-600">Jumlah Transaksi</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-600">Penjualan Tunai</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600">
+                    Rp {reportData.totalCashSales.toLocaleString('id-ID')}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-gray-600">Penjualan Transfer</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">
+                    Rp {reportData.totalTransferSales.toLocaleString('id-ID')}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-sm font-medium text-gray-600">Jumlah Transaksi</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-600">
                     {reportData.totalSales}
                   </div>
                 </CardContent>

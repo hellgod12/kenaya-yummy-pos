@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useStore } from '@/store/useStore'
 import { supabase } from '@/lib/supabase'
 import { Plus, Minus, Trash2, ShoppingBag, Cake, Coffee, Cookie } from 'lucide-react'
@@ -46,6 +47,7 @@ export default function POSPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer'>('cash')
   
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, getCartTotal, getCartCount } = useStore()
 
@@ -125,7 +127,7 @@ export default function POSPage() {
           total_amount: totalAmount,
           total_cost: totalCost,
           profit: profit,
-          payment_method: 'cash',
+          payment_method: paymentMethod,
           created_by: user!.id
         })
         .select()
@@ -331,6 +333,20 @@ export default function POSPage() {
                       Rp {getCartTotal().toLocaleString('id-ID')}
                     </span>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Metode Pembayaran
+                  </label>
+                  <Select value={paymentMethod} onValueChange={(value: 'cash' | 'transfer' | null) => setPaymentMethod(value as 'cash' | 'transfer')}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Pilih metode pembayaran" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Tunai (Cash)</SelectItem>
+                      <SelectItem value="transfer">Transfer</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button
                   className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-md"
