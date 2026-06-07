@@ -188,12 +188,30 @@ export default function RecipesPage() {
 
   const updateProductHPP = async (productId: string) => {
     try {
-      const hpp = await supabase.rpc('calculate_product_hpp', { product_uuid: productId })
-      if (hpp.error) throw hpp.error
+      // Calculate HPP directly from recipes
+      const { data: recipes, error: recipesError } = await supabase
+        .from('product_recipes')
+        .select('quantity_used, raw_materials(cost_per_unit)')
+        .eq('product_id', productId)
+      
+      if (recipesError) throw recipesError
 
+      // Calculate total HPP
+      let totalHPP = 0
+      if (recipes) {
+        totalHPP = recipes.reduce((sum, recipe) => {
+          const materials = recipe.raw_materials as any
+          if (materials && materials.length > 0) {
+            return sum + (recipe.quantity_used * materials[0].cost_per_unit)
+          }
+          return sum
+        }, 0)
+      }
+
+      // Update product HPP
       const { error: updateError } = await supabase
         .from('products')
-        .update({ hpp: hpp.data })
+        .update({ hpp: totalHPP })
         .eq('id', productId)
 
       if (updateError) throw updateError
